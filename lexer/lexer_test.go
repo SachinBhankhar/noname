@@ -15,7 +15,7 @@ func TestNextToken(t *testing.T) {
         };
 
         let result = add(one, two);
-        !-/*5;
+        !-/ *5;
         5 < 10 > 5;
 
         if (5 < 10) {

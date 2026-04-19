@@ -128,8 +128,24 @@ func (l *Lexer) CurrentLine() int { return l.line }
 func (l *Lexer) CurrentCol() int  { return l.col }
 
 func (l *Lexer) skipWhitepace() {
-	for l.ch == ' ' || l.ch == '\t' || l.ch == '\n' || l.ch == '\r' {
-		l.readChar()
+	for {
+		if l.ch == ' ' || l.ch == '\t' || l.ch == '\n' || l.ch == '\r' {
+			l.readChar()
+		} else if l.ch == '/' && l.peekChar() == '/' {
+			for l.ch != '\n' && l.ch != 0 {
+				l.readChar()
+			}
+		} else if l.ch == '/' && l.peekChar() == '*' {
+			l.readChar()
+			l.readChar()
+			for !(l.ch == '*' && l.peekChar() == '/') && l.ch != 0 {
+				l.readChar()
+			}
+			l.readChar()
+			l.readChar()
+		} else {
+			break
+		}
 	}
 }
 

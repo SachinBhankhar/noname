@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"sync"
+	"time"
 
 	"github.com/tliron/glsp"
 	protocol "github.com/tliron/glsp/protocol_3_16"
@@ -13,8 +15,13 @@ import (
 )
 
 // documents holds the current content of every open file.
-// Key is the file URI (e.g. "file:///home/user/main.nn").
 var documents = map[string]string{}
+
+// debounce state: one timer per open file URI.
+var (
+	debounceTimers = map[string]*time.Timer{}
+	debounceMu     sync.Mutex
+)
 
 func textDocumentDidOpen(ctx *glsp.Context, params *protocol.DidOpenTextDocumentParams) error {
 	uri := string(params.TextDocument.URI)
@@ -30,10 +37,24 @@ func textDocumentDidChange(ctx *glsp.Context, params *protocol.DidChangeTextDocu
 		change := params.ContentChanges[len(params.ContentChanges)-1]
 		if c, ok := change.(protocol.TextDocumentContentChangeEventWhole); ok {
 			documents[uri] = c.Text
-			publishDiagnostics(ctx, uri, c.Text)
+			scheduleDiagnostics(ctx, uri, c.Text)
 		}
 	}
 	return nil
+}
+
+// scheduleDiagnostics waits 300ms after the last change before running diagnostics.
+// This prevents errors from appearing on half-typed tokens (e.g. the first / of //).
+func scheduleDiagnostics(ctx *glsp.Context, uri, content string) {
+	debounceMu.Lock()
+	defer debounceMu.Unlock()
+
+	if t, ok := debounceTimers[uri]; ok {
+		t.Stop()
+	}
+	debounceTimers[uri] = time.AfterFunc(300*time.Millisecond, func() {
+		publishDiagnostics(ctx, uri, content)
+	})
 }
 
 func textDocumentDidClose(ctx *glsp.Context, params *protocol.DidCloseTextDocumentParams) error {

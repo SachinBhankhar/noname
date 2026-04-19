@@ -6,3 +6,10 @@ print(x);
 let j = 50;
 
 print(x+j);
+
+let i = if (x > j) { 10 } else { 5 };
+
+print(i);
+
+
+// sjsk
