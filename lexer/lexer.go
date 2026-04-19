@@ -9,10 +9,12 @@ type Lexer struct {
 	position     int
 	readPosition int
 	ch           byte
+	line         int
+	col          int
 }
 
 func New(input string) *Lexer {
-	l := &Lexer{input: input}
+	l := &Lexer{input: input, line: 1, col: 0}
 	l.readChar()
 	return l
 }
@@ -26,6 +28,13 @@ func (l *Lexer) readChar() {
 
 	l.position = l.readPosition
 	l.readPosition += 1
+
+	if l.ch == '\n' {
+		l.line++
+		l.col = 0
+	} else {
+		l.col++
+	}
 }
 
 func (l *Lexer) readIdentifier() string {
@@ -42,6 +51,8 @@ func (l *Lexer) NextToken() token.Token {
 	var tok token.Token
 
 	l.skipWhitepace()
+
+	line, col := l.line, l.col
 
 	switch l.ch {
 	case '=':
@@ -84,6 +95,11 @@ func (l *Lexer) NextToken() token.Token {
 		tok = newToken(token.GT, l.ch)
 	case ',':
 		tok = newToken(token.COMMA, l.ch)
+	case '"':
+		tok.Type = token.STRING
+		tok.Literal = l.readString()
+		tok.Line, tok.Col = line, col
+		return tok
 	case 0:
 		tok.Literal = ""
 		tok.Type = token.EOF
@@ -91,19 +107,25 @@ func (l *Lexer) NextToken() token.Token {
 		if isLetter(l.ch) {
 			tok.Literal = l.readIdentifier()
 			tok.Type = token.LookupIdentifier(tok.Literal)
+			tok.Line, tok.Col = line, col
 			return tok
 		} else if isDigit(l.ch) {
 			tok.Literal = l.readNumber()
 			tok.Type = token.INT
+			tok.Line, tok.Col = line, col
 			return tok
 		} else {
 			tok = newToken(token.ILLEGAL, l.ch)
 		}
 	}
 
+	tok.Line, tok.Col = line, col
 	l.readChar()
 	return tok
 }
+
+func (l *Lexer) CurrentLine() int { return l.line }
+func (l *Lexer) CurrentCol() int  { return l.col }
 
 func (l *Lexer) skipWhitepace() {
 	for l.ch == ' ' || l.ch == '\t' || l.ch == '\n' || l.ch == '\r' {
@@ -127,6 +149,17 @@ func (l *Lexer) readNumber() string {
 	}
 
 	return l.input[position:l.position]
+}
+
+func (l *Lexer) readString() string {
+	l.readChar() // skip opening quote
+	position := l.position
+	for l.ch != '"' && l.ch != 0 {
+		l.readChar()
+	}
+	str := l.input[position:l.position]
+	l.readChar() // skip closing quote
+	return str
 }
 
 func isDigit(ch byte) bool {

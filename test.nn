@@ -1,0 +1,8 @@
+let x = 10;
+puts("result: " + str(x));
+
+print(x);
+
+let j = 50;
+
+print(x+j);

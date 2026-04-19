@@ -5,15 +5,18 @@ type TokenType string
 type Token struct {
 	Type    TokenType
 	Literal string
+	Line    int
+	Col     int
 }
 
 const (
 	ILLEGAL = "ILLEGAL"
-	EOF     = "FOF"
+	EOF     = "EOF"
 
 	//Identifiers + literals
 	IDENTIFIER = "IDENTIFIER" // foobar, a, b, x, y
 	INT        = "INT"
+	STRING     = "STRING"
 
 	//Operators
 	ASSIGN   = "="
